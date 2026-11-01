@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SmartPick AI | Mobile Recommender</title>
+    <link rel="icon" href="__FAVICON__">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <!-- Chart.js for Radar & Spec Comparison -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 bg-slate-900 text-white shadow-md border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <img src="__LOGO__" alt="SmartPick AI logo" class="h-10 w-auto rounded-lg bg-white p-1 shadow-sm">
+                <div>
+                    <h1 class="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">SmartPick AI</h1>
+                    <p class="text-xs text-blue-300 hidden sm:block">Samsung Innovation Campus • Mini Project PJ1</p>
+                </div>
+            </div>
+
+            <!-- Header Controls -->
+            <div class="flex items-center space-x-2">
+                <button id="viewToggleSim" class="text-xs sm:text-sm px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition">
+                    🔄 Similar Phones
+                </button>
+                <button id="openCompareBtn" class="text-xs sm:text-sm px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition flex items-center space-x-1.5">
+                    <span>📊 Compare</span>
+                    <span id="compareBadge" class="bg-emerald-800 text-emerald-100 px-1.5 py-0.2 rounded-full text-xs">0</span>
+                </button>
+                <!-- Mobile Filter Drawer Button -->
+                <button id="mobileFilterToggle" class="lg:hidden p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition" aria-label="Toggle Filters">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Persona Quick Selector Ribbon -->
+    <div class="bg-white border-b border-slate-200 sticky top-16 z-20 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 overflow-x-auto no-scrollbar flex items-center space-x-2 text-xs sm:text-sm">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Personas:</span>
+            <button class="persona-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700" data-persona="Student">🎓 Student</button>
+            <button class="persona-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700" data-persona="Gamer">🎮 Gamer</button>
+            <button class="persona-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700" data-persona="Content Creator">📸 Content Creator</button>
+            <button class="persona-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700" data-persona="Business Professional">💼 Business Pro</button>
+            <button class="persona-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700" data-persona="Senior Citizen">👵 Senior Citizen</button>
+            <button class="persona-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-700" data-persona="Custom">⚙️ Custom Sliders</button>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+        
+        <!-- Search & Natural Language Query Box -->
+        <div class="bg-white rounded-xl shadow-xs border border-slate-200 p-4 mb-6">
+            <div class="flex flex-col sm:flex-row gap-3">
+                <div class="relative flex-1">
+                    <input type="text" id="nlQueryInput" placeholder="Try: 'Best camera phone under $350 with AMOLED' or 'Gaming 8GB RAM'..." 
+                           class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition">
+                    <span class="absolute left-3 top-3 text-slate-400">🔍</span>
+                </div>
+                <div class="flex gap-2">
+                    <button id="searchBtn" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-lg transition shadow-xs whitespace-nowrap">
+                        Find Best Match
+                    </button>
+                    <button id="resetBtn" class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-sm rounded-lg transition" title="Reset Filters">
+                        ↺
+                    </button>
+                </div>
+            </div>
+            <!-- Preset Prompt Suggestions -->
+            <div class="flex flex-wrap gap-2 mt-2.5 text-xs text-slate-500 items-center">
+                <span class="font-medium">Quick suggestions:</span>
+                <button class="query-prompt text-blue-600 hover:underline">Best camera phone under $350</button> •
+                <button class="query-prompt text-blue-600 hover:underline">8GB RAM gaming phone under $300</button> •
+                <button class="query-prompt text-blue-600 hover:underline">Battery over 5000mAh under $250</button>
+            </div>
+        </div>
+
+        <!-- 2-Column Responsive Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Sidebar: Filters & Weights (Desktop & Mobile Drawer) -->
+            <aside id="filterDrawer" class="hidden lg:block lg:col-span-4 bg-white rounded-xl shadow-xs border border-slate-200 p-5 space-y-6">
+                
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <h2 class="font-bold text-slate-800 text-sm uppercase tracking-wider">🎯 Decision Parameters</h2>
+                    <span id="activeCandidatesCount" class="text-xs bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full">413 Devices</span>
+                </div>
+
+                <!-- Budget Filter -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <label for="priceSlider" class="font-medium text-slate-700">Max Budget:</label>
+                        <span id="priceLabel" class="font-bold text-blue-600 text-base">$350</span>
+                    </div>
+                    <input type="range" id="priceSlider" min="80" max="1200" step="10" value="350" 
+                           class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                    <div class="flex justify-between text-xs text-slate-400">
+                        <span>$80 (Entry)</span>
+                        <span>$600 (Mid)</span>
+                        <span>$1,200 (Flagship)</span>
+                    </div>
+                </div>
+
+                <!-- RAM Filter -->
+                <div class="space-y-2">
+                    <label for="ramSelect" class="block text-sm font-medium text-slate-700">Minimum RAM</label>
+                    <select id="ramSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden">
+                        <option value="0">Any RAM</option>
+                        <option value="4">4 GB or higher</option>
+                        <option value="6" selected>6 GB or higher</option>
+                        <option value="8">8 GB or higher</option>
+                        <option value="12">12 GB (Top Performance)</option>
+                    </select>
+                </div>
+
+                <!-- Display Type Filter -->
+                <div class="space-y-2">
+                    <span class="block text-sm font-medium text-slate-700">Display Technology</span>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <label class="flex items-center space-x-2 p-2 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" value="HD+ AMOLED" class="display-check text-blue-600 rounded-sm">
+                            <span>HD+ AMOLED</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" value="AMOLED" class="display-check text-blue-600 rounded-sm">
+                            <span>AMOLED</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" value="LCD" class="display-check text-blue-600 rounded-sm">
+                            <span>LCD</span>
+                        </label>
+                        <label class="flex items-center space-x-2 p-2 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" value="other_types" class="display-check text-blue-600 rounded-sm">
+                            <span>Other Displays</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Brand Filter -->
+                <div class="space-y-2">
+                    <label for="brandSelect" class="block text-sm font-medium text-slate-700">Manufacturer Brand</label>
+                    <select id="brandSelect" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-hidden">
+                        <option value="">All Brands</option>
+                    </select>
+                </div>
+
+                <!-- Criteria Weight Tuning Accordion -->
+                <div class="pt-3 border-t border-slate-100">
+                    <button id="toggleWeightsBtn" class="flex items-center justify-between w-full text-left font-semibold text-xs uppercase tracking-wider text-slate-600 hover:text-blue-600">
+                        <span>⚖️ Criteria Weights (Persona Mix)</span>
+                        <span id="weightsArrow">▼</span>
+                    </button>
+                    <div id="weightsContainer" class="mt-4 space-y-3">
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs text-slate-600">
+                                <label for="wPrice">Cost Sensitivity</label>
+                                <span id="wPriceVal">25%</span>
+                            </div>
+                            <input type="range" id="wPrice" min="0" max="100" value="25" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600">
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs text-slate-600">
+                                <label for="wRam">RAM & Multitasking</label>
+                                <span id="wRamVal">30%</span>
+                            </div>
+                            <input type="range" id="wRam" min="0" max="100" value="30" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600">
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs text-slate-600">
+                                <label for="wCamera">Camera Megapixels</label>
+                                <span id="wCameraVal">10%</span>
+                            </div>
+                            <input type="range" id="wCamera" min="0" max="100" value="10" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600">
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs text-slate-600">
+                                <label for="wBattery">Battery Capacity</label>
+                                <span id="wBatteryVal">20%</span>
+                            </div>
+                            <input type="range" id="wBattery" min="0" max="100" value="20" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600">
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs text-slate-600">
+                                <label for="wStorage">Internal Storage</label>
+                                <span id="wStorageVal">15%</span>
+                            </div>
+                            <input type="range" id="wStorage" min="0" max="100" value="15" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600">
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex justify-between text-xs text-slate-600">
+                                <label for="wProcessor">Processor Power</label>
+                                <span id="wProcessorVal">10%</span>
+                            </div>
+                            <input type="range" id="wProcessor" min="0" max="100" value="10" class="w-full h-1.5 bg-slate-200 rounded-lg appearance-none accent-blue-600">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button id="applyFiltersBtn" class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-sm rounded-lg transition shadow-xs">
+                        Recalculate Ranks
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Right Area: Results & Cards -->
+            <section class="lg:col-span-8 space-y-4">
+                
+                <!-- Notice Banner for Constraint Relaxation / Alerts -->
+                <div id="noticeBanner" class="hidden p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs sm:text-sm flex items-start space-x-2.5">
+                    <span class="text-base">⚠️</span>
+                    <div id="noticeText">Notice message here</div>
+                </div>
+
+                <!-- Results Header Bar -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-slate-200 gap-2">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base" id="resultsTitle">Top Recommendations</h3>
+                        <p class="text-xs text-slate-500" id="resultsSubtitle">Persona-weighted score (Min-Max scaled, cheaper = higher)</p>
+                    </div>
+                    <div class="flex items-center space-x-2 text-xs">
+                        <label for="topKSelect" class="text-slate-500">Show:</label>
+                        <select id="topKSelect" class="border border-slate-200 rounded-md px-2 py-1 bg-white text-slate-700">
+                            <option value="5">Top 5</option>
+                            <option value="10">Top 10</option>
+                            <option value="20">Top 20</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Device Recommendation Cards Container -->
+                <div id="devicesContainer" class="space-y-3.5">
+                    <!-- Cards will be populated by JavaScript -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal: Side-by-Side Comparison & Radar Chart -->
+    <div id="compareModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900">📊 Specifications Comparison</h3>
+                    <p class="text-xs text-slate-500">Comparing selected devices across normalized radar dimensions</p>
+                </div>
+                <button id="closeCompareBtn" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">✕</button>
+            </div>
+
+            <!-- Radar Chart Container -->
+            <div class="relative h-72 w-full bg-slate-50 rounded-xl p-4 flex items-center justify-center">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+
+            <!-- Comparison Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 uppercase" id="compareTableHead">
+                            <th class="p-2.5 font-semibold">Spec Attribute</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compareTableBody" class="divide-y divide-slate-100">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex justify-between items-center pt-2">
+                <button id="clearCompareBtn" class="text-xs text-red-600 hover:underline">Clear Selection</button>
+                <button id="closeCompareBtn2" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-800">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Content-Based Similarity Finder -->
+    <div id="similarityModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-900">🔄 Content-Based Similarity Search</h3>
+                <button id="closeSimBtn" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">✕</button>
+            </div>
+            <div>
+                <label for="referencePhoneSelect" class="block text-xs font-semibold text-slate-600 uppercase mb-1">Select Reference Device:</label>
+                <select id="referencePhoneSelect" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm"></select>
+            </div>
+            <div id="simResultsContainer" class="space-y-3 pt-2">
+                <!-- Similar devices output -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <p class="font-semibold text-slate-700">Samsung Innovation Campus (SIC) • Mini Project PJ1</p>
+            <p class="mt-1">Designed by StudentName | Generative AI Module | Chapter 5</p>
+            <p class="mt-1 text-slate-400">Weighted Multi-Criteria Scoring (Min-Max) & Content-Based Similarity</p>
+        </div>
+    </footer>
+
+    <!-- EMBEDDED DATASET & LOGIC -->
+    <script>
+        const PERSONA_WEIGHTS = __WEIGHTS__;
+        const RAW_DATA = __DATA__;
+        let comparedDeviceIds = new Set();
+        let currentRecommendations = [];
+        let radarChartInstance = null;
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const bg = type === 'error' ? 'bg-red-600' : 'bg-slate-900';
+            toast.className = `${bg} text-white px-4 py-2.5 rounded-lg shadow-lg text-xs font-medium transition-opacity duration-300 pointer-events-auto`;
+            toast.innerText = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Current active state
+        let state = {
+            persona: 'Student',
+            maxPrice: 350,
+            minRam: 6,
+            displayTypes: [],
+            brand: '',
+            topK: 5,
+            weights: { price: 0.40, ram: 0.15, camera: 0, battery: 0.25, storage: 0.10, processor: 0.10 }
+        };
+
+        // Persona-weighted score: Min-Max scale each criterion (price inverted), multiply by weight, add, x100.
+        // Mirrors get_recommendations() in recommendation.py.
+        function computeWeightedScore(devices, weights) {
+            if (!devices || devices.length === 0) return [];
+            const cols = { price: 'clean_price', ram: 'ram', camera: 'camera', battery: 'battery', storage: 'clean_storage', processor: 'processor_score' };
+            const sumW = Object.keys(cols).reduce((a, k) => a + (weights[k] || 0), 0) || 1.0;
+            const range = {};
+            Object.entries(cols).forEach(([k, col]) => {
+                const vals = devices.map(d => d[col]);
+                range[k] = { min: Math.min(...vals), max: Math.max(...vals) };
+            });
+            const scored = devices.map(d => {
+                let total = 0;
+                Object.entries(cols).forEach(([k, col]) => {
+                    const r = range[k];
+                    let x = r.max === r.min ? 0 : (d[col] - r.min) / (r.max - r.min);
+                    if (k === 'price') x = 1 - x;
+                    total += x * ((weights[k] || 0) / sumW);
+                });
+                return { ...d, finalScore: total * 100 };
+            });
+            scored.sort((a, b) => b.finalScore - a.finalScore);
+            return scored;
+        }
+
+        // Plain-English reasons (port of generate_explanation in recommendation.py)
+        function explainFit(d, persona) {
+            const r = [];
+            if (persona === 'Student') {
+                if (d.clean_price < 400) r.push(`budget-friendly price of $${d.clean_price.toFixed(0)}`);
+                if (d.battery >= 4500) r.push(`long-lasting ${d.battery} mAh battery for all-day classes`);
+                if (d.ram >= 6) r.push(`reliable ${d.ram}GB RAM for multitasking`);
+            } else if (persona === 'Gamer') {
+                if (d.processor_score >= 0.7) r.push('high-performance processor for lag-free gaming');
+                if (d.ram >= 8) r.push(`heavy-duty ${d.ram}GB RAM`);
+                if (d.battery >= 4500) r.push(`robust ${d.battery} mAh battery`);
+            } else if (persona === 'Content Creator') {
+                if (d.camera >= 64) r.push(`exceptional ${d.camera}MP high-resolution camera`);
+                if (d.clean_storage >= 256) r.push(`spacious ${d.clean_storage}GB storage for photos and 4K videos`);
+            } else if (persona === 'Business Professional') {
+                if (d.battery >= 4500) r.push(`dependable ${d.battery} mAh battery for long work days`);
+                if (d.processor_score >= 0.7) r.push('powerful processor for smooth multitasking');
+                if (d.ram >= 8) r.push(`${d.ram}GB RAM for seamless app switching`);
+            } else if (persona === 'Senior Citizen') {
+                if (d.clean_price < 350) r.push(`very affordable price ($${d.clean_price.toFixed(0)})`);
+                if (d.battery >= 4500) r.push(`reliable ${d.battery} mAh battery requiring less frequent charging`);
+                r.push('balanced, practical specifications for everyday ease of use');
+            }
+            if (!r.length) r.push('balanced overall specifications matching your selected profile');
+            return 'Selected for its ' + r.join(', ') + '.';
+        }
+
+        // Generate explainability tags
+        function getExplanationBadges(device) {
+            const badges = [];
+            if (device.camera >= 108) badges.push(`📸 Pro ${device.camera}MP Sensor`);
+            else if (device.camera >= 48) badges.push(`📷 ${device.camera}MP Camera`);
+
+            if (device.ram >= 12) badges.push(`🚀 12GB Extreme RAM`);
+            else if (device.ram >= 8) badges.push(`⚡ ${device.ram}GB High RAM`);
+
+            if (device.battery >= 5000) badges.push(`🔋 ${device.battery}mAh Battery`);
+            if (device.clean_storage >= 512) badges.push(`💾 ${device.clean_storage}GB Storage`);
+            if (device.clean_display_type.includes('AMOLED')) badges.push(`✨ ${device.clean_display_type}`);
+            if (device.clean_price <= 200) badges.push(`💰 Great Value ($${Math.round(device.clean_price)})`);
+            if (device.weight <= 155) badges.push(`🪶 Featherweight (${device.weight}g)`);
+            if (device.rating >= 4.4) badges.push(`⭐ ${device.rating}★ Rated`);
+
+            return badges.slice(0, 4);
+        }
+
+        // Execute filtration and ranking
+        function runRecommendationPipeline() {
+            const noticeBanner = document.getElementById('noticeBanner');
+            const noticeText = document.getElementById('noticeText');
+            noticeBanner.classList.add('hidden');
+
+            let filtered = RAW_DATA.filter(d => {
+                if (d.clean_price > state.maxPrice) return false;
+                if (state.minRam > 0 && d.ram < state.minRam) return false;
+                if (state.brand && d.brand !== state.brand) return false;
+                if (state.displayTypes.length > 0 && !state.displayTypes.some(t => t === 'other_types' ? !['AMOLED','HD+ AMOLED','LCD'].includes(d.clean_display_type) : t === d.clean_display_type)) return false;
+                return true;
+            });
+
+            // Check if zero devices match (Soft constraint relaxation guardrail)
+            if (filtered.length === 0) {
+                const relaxedPrice = state.maxPrice * 1.25;
+                const relaxedRam = Math.max(2, state.minRam - 2);
+                filtered = RAW_DATA.filter(d => {
+                    if (d.clean_price > relaxedPrice) return false;
+                    if (d.ram < relaxedRam) return false;
+                    return true;
+                });
+
+                noticeText.innerHTML = `<strong>Zero devices matched your initial strict constraints.</strong> Automatic relaxation activated (Budget expanded to $${Math.round(relaxedPrice)} and RAM lowered) to reveal the nearest viable options.`;
+                noticeBanner.classList.remove('hidden');
+            }
+
+            document.getElementById('activeCandidatesCount').innerText = `${filtered.length} Candidates`;
+
+            // Rank by persona-weighted score
+            const ranked = computeWeightedScore(filtered, state.weights);
+            currentRecommendations = ranked.slice(0, state.topK);
+
+            renderCards(currentRecommendations);
+        }
+
+        function renderCards(devices) {
+            const container = document.getElementById('devicesContainer');
+            container.innerHTML = '';
+
+            if (devices.length === 0) {
+                container.innerHTML = `<div class="p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-500">No phones found matching criteria. Try increasing budget or clearing filters.</div>`;
+                return;
+            }
+
+            devices.forEach((d, idx) => {
+                const isCompared = comparedDeviceIds.has(d.name);
+                const badges = getExplanationBadges(d);
+                const badgesHtml = badges.map(b => `<span class="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-md border border-blue-200">${b}</span>`).join('');
+
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-xl border border-slate-200 hover:border-blue-400 p-4 sm:p-5 shadow-xs transition hover:shadow-md space-y-3";
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-7 h-7 rounded-full bg-slate-900 text-white font-bold text-xs flex items-center justify-center shrink-0">#${idx + 1}</span>
+                            <h4 class="font-bold text-slate-900 text-base sm:text-lg">${d.name}</h4>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                                Score: ${d.finalScore.toFixed(1)}/100
+                            </span>
+                            <button class="compare-toggle-btn text-xs px-2.5 py-1 rounded-md border ${isCompared ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'} transition" data-name="${d.name}">
+                                ${isCompared ? '✓ Added' : '+ Compare'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-1.5 pt-1">
+                        ${badgesHtml}
+                    </div>
+                    <p class="text-xs text-slate-600">💡 ${explainFit(d, state.persona)}</p>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-3 border-t border-slate-100 text-xs">
+                        <div class="bg-slate-50 p-2 rounded-lg"><span class="text-slate-400 block text-[10px] uppercase font-bold">Price</span><strong class="text-sm text-slate-800">$${d.clean_price.toFixed(0)}</strong></div>
+                        <div class="bg-slate-50 p-2 rounded-lg"><span class="text-slate-400 block text-[10px] uppercase font-bold">RAM & Storage</span><strong class="text-slate-800">${d.ram}GB / ${d.clean_storage}GB</strong></div>
+                        <div class="bg-slate-50 p-2 rounded-lg"><span class="text-slate-400 block text-[10px] uppercase font-bold">Camera</span><strong class="text-slate-800">${d.camera} MP</strong></div>
+                        <div class="bg-slate-50 p-2 rounded-lg"><span class="text-slate-400 block text-[10px] uppercase font-bold">Battery</span><strong class="text-slate-800">${d.battery} mAh</strong></div>
+                        <div class="bg-slate-50 p-2 rounded-lg col-span-2 sm:col-span-1"><span class="text-slate-400 block text-[10px] uppercase font-bold">Display</span><strong class="text-slate-800 truncate block">${d.clean_display_type}</strong></div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+
+            // Attach compare button event listeners
+            document.querySelectorAll('.compare-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const name = btn.getAttribute('data-name');
+                    if (comparedDeviceIds.has(name)) {
+                        comparedDeviceIds.delete(name);
+                    } else {
+                        if (comparedDeviceIds.size >= 4) {
+                            showToast('You can compare at most 4 devices simultaneously.', 'error');
+                            return;
+                        }
+                        comparedDeviceIds.add(name);
+                    }
+                    updateCompareBadge();
+                    renderCards(currentRecommendations);
+                });
+            });
+        }
+
+        function updateCompareBadge() {
+            document.getElementById('compareBadge').innerText = comparedDeviceIds.size;
+        }
+
+        // Setup Persona presets (weights come from PERSONA_WEIGHTS = recommendation.py)
+        const PRESETS = {
+            'Student':               { maxPrice: 400,  minRam: 4 },
+            'Gamer':                 { maxPrice: 1200, minRam: 6 },
+            'Content Creator':       { maxPrice: 1200, minRam: 4 },
+            'Business Professional': { maxPrice: 1200, minRam: 4 },
+            'Senior Citizen':        { maxPrice: 350,  minRam: 0 }
+        };
+        const WEIGHT_KEYS = ['price', 'ram', 'camera', 'battery', 'storage', 'processor'];
+        const cap = k => k.charAt(0).toUpperCase() + k.slice(1);
+
+        function setActiveChip(persona) {
+            document.querySelectorAll('.persona-chip').forEach(c => {
+                c.className = "persona-chip px-3 py-1 rounded-full font-medium transition whitespace-nowrap " +
+                    (c.getAttribute('data-persona') === persona ? "bg-blue-600 text-white shadow-xs" : "bg-slate-100 hover:bg-slate-200 text-slate-700");
+            });
+        }
+
+        function syncControls() {
+            document.getElementById('priceSlider').value = state.maxPrice;
+            document.getElementById('priceLabel').innerText = `$${state.maxPrice}`;
+            document.getElementById('ramSelect').value = state.minRam.toString();
+            WEIGHT_KEYS.forEach(k => {
+                const pct = Math.round((state.weights[k] || 0) * 100);
+                document.getElementById('w' + cap(k)).value = pct;
+                document.getElementById('w' + cap(k) + 'Val').innerText = `${pct}%`;
+            });
+        }
+
+        function applyPersona(persona) {
+            setActiveChip(persona);
+            state.persona = persona;
+            if (PERSONA_WEIGHTS[persona]) {
+                Object.assign(state, PRESETS[persona]);
+                state.weights = {};
+                WEIGHT_KEYS.forEach(k => state.weights[k] = PERSONA_WEIGHTS[persona][k] || 0);
+            }
+            syncControls();
+            runRecommendationPipeline();
+        }
+
+        // Parse freeform search query
+        function parseAndApplyQuery(text) {
+            const q = text.toLowerCase();
+            const personaHit = Object.keys(PERSONA_WEIGHTS).find(p => q.includes(p.toLowerCase().split(' ')[0]));
+            if (personaHit) applyPersona(personaHit);
+            if (q.includes('amoled')) {
+                document.querySelectorAll('.display-check').forEach(c => c.checked = (c.value === 'AMOLED' || c.value === 'HD+ AMOLED'));
+                state.displayTypes = ['AMOLED', 'HD+ AMOLED'];
+            }
+            const priceMatch = q.match(/(?:under|below|max|less than)\s*\$?(\d+)/);
+            if (priceMatch) {
+                state.maxPrice = parseFloat(priceMatch[1]);
+                document.getElementById('priceSlider').value = state.maxPrice;
+                document.getElementById('priceLabel').innerText = `$${state.maxPrice}`;
+            }
+            const ramMatch = q.match(/(\d+)\s*(?:gb|g)\s*(?:ram)?/);
+            if (ramMatch) {
+                const r = parseInt(ramMatch[1]);
+                if ([2, 3, 4, 6, 8, 12].includes(r)) {
+                    state.minRam = r;
+                    document.getElementById('ramSelect').value = r.toString();
+                }
+            }
+            if (q.includes('camera') || q.includes('photo')) {
+                state.weights.camera = 0.40;
+            }
+            if (q.includes('game') || q.includes('gaming')) {
+                state.weights.ram = 0.35;
+            }
+            if (q.includes('battery')) {
+                state.weights.battery = 0.40;
+            }
+            if (q.includes('camera') || q.includes('photo') || q.includes('game') || q.includes('gaming') || q.includes('battery')) { state.persona = 'Custom'; setActiveChip('Custom'); }
+            syncControls();
+            runRecommendationPipeline();
+        }
+
+        // Compare Modal rendering & Radar Chart
+        function showCompareModal() {
+            const modal = document.getElementById('compareModal');
+            if (comparedDeviceIds.size === 0) {
+                // Default to first 2 recommended phones if none selected
+                if (currentRecommendations.length >= 2) {
+                    comparedDeviceIds.add(currentRecommendations[0].name);
+                    comparedDeviceIds.add(currentRecommendations[1].name);
+                    updateCompareBadge();
+                } else {
+                    showToast('Please select at least one phone to compare.', 'error');
+                    return;
+                }
+            }
+
+            const selectedDevices = RAW_DATA.filter(d => comparedDeviceIds.has(d.name));
+            modal.classList.remove('hidden');
+
+            // Render table header
+            const thead = document.getElementById('compareTableHead');
+            thead.innerHTML = '<th class="p-2.5 font-semibold">Specification</th>';
+            selectedDevices.forEach(d => {
+                thead.innerHTML += `<th class="p-2.5 font-bold text-slate-800">${d.name}</th>`;
+            });
+
+            // Render table rows
+            const tbody = document.getElementById('compareTableBody');
+            const rows = [
+                { label: 'Price', fmt: d => `$${d.clean_price.toFixed(0)}` },
+                { label: 'RAM', fmt: d => `${d.ram} GB` },
+                { label: 'Storage', fmt: d => `${d.clean_storage} GB` },
+                { label: 'Camera', fmt: d => `${d.camera} MP` },
+                { label: 'Battery', fmt: d => `${d.battery} mAh` },
+                { label: 'Display Type', fmt: d => d.clean_display_type },
+                { label: 'Display Size', fmt: d => `${d.display_size}"` },
+                { label: 'Weight', fmt: d => `${d.weight} g` },
+                { label: 'Rating', fmt: d => `${d.rating} ★` },
+                { label: 'Processor', fmt: d => d.clean_processor }
+            ];
+
+            tbody.innerHTML = '';
+            rows.forEach(r => {
+                let trHtml = `<td class="p-2.5 font-medium text-slate-500 bg-slate-50">${r.label}</td>`;
+                selectedDevices.forEach(d => {
+                    trHtml += `<td class="p-2.5 font-semibold text-slate-800">${r.fmt(d)}</td>`;
+                });
+                tbody.innerHTML += `<tr>${trHtml}</tr>`;
+            });
+
+            // Render Radar Chart with Chart.js
+            const ctx = document.getElementById('comparisonChart').getContext('2d');
+            if (radarChartInstance) radarChartInstance.destroy();
+
+            const chartColors = [
+                'rgba(37, 99, 235, 0.7)',
+                'rgba(16, 185, 129, 0.7)',
+                'rgba(245, 158, 11, 0.7)',
+                'rgba(168, 85, 247, 0.7)'
+            ];
+
+            // Normalize specs to 0-100 scale for radar visualization
+            const datasets = selectedDevices.map((d, i) => ({
+                label: d.name,
+                data: [
+                    Math.min(100, Math.round((d.camera / 200) * 100)),
+                    Math.min(100, Math.round((d.ram / 12) * 100)),
+                    Math.min(100, Math.round((d.battery / 6000) * 100)),
+                    Math.min(100, Math.round((d.clean_storage / 1024) * 100)),
+                    Math.min(100, Math.round((1 - (d.clean_price / 1200)) * 100)),
+                    Math.round(d.processor_score * 100)
+                ],
+                backgroundColor: chartColors[i % chartColors.length].replace('0.7', '0.2'),
+                borderColor: chartColors[i % chartColors.length],
+                pointBackgroundColor: chartColors[i % chartColors.length]
+            }));
+
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Camera', 'RAM', 'Battery', 'Storage', 'Affordability', 'Processor'],
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#E2E8F0' },
+                            grid: { color: '#F1F5F9' },
+                            pointLabels: { font: { size: 11, family: 'Inter', weight: 'bold' }, color: '#475569' },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // Setup similarity search
+        function setupSimilarityFinder() {
+            const select = document.getElementById('referencePhoneSelect');
+            select.innerHTML = '';
+            RAW_DATA.forEach(d => {
+                select.innerHTML += `<option value="${d.name}">${d.name} ($${d.clean_price.toFixed(0)}, ${d.ram}GB RAM)</option>`;
+            });
+
+            select.addEventListener('change', runSimilaritySearch);
+        }
+
+        function runSimilaritySearch() {
+            const refName = document.getElementById('referencePhoneSelect').value;
+            const refPhone = RAW_DATA.find(d => d.name === refName);
+            if (!refPhone) return;
+
+            // Normalized spec vector for cosine similarity
+            const keys = ['clean_price', 'camera', 'battery', 'clean_storage', 'ram', 'display_score'];
+            const maxVals = { clean_price: 1200, camera: 200, battery: 7000, clean_storage: 1024, ram: 12, display_score: 5 };
+
+            const refVec = keys.map(k => refPhone[k] / maxVals[k]);
+            const refNorm = Math.sqrt(refVec.reduce((acc, v) => acc + v*v, 0)) || 1.0;
+
+            const scored = RAW_DATA.filter(d => d.name !== refName).map(d => {
+                const dVec = keys.map(k => d[k] / maxVals[k]);
+                const dNorm = Math.sqrt(dVec.reduce((acc, v) => acc + v*v, 0)) || 1.0;
+                let dot = 0;
+                for (let i = 0; i < keys.length; i++) dot += refVec[i] * dVec[i];
+                const sim = dot / (refNorm * dNorm);
+                return { ...d, simScore: sim };
+            });
+
+            scored.sort((a, b) => b.simScore - a.simScore);
+            const topSim = scored.slice(0, 4);
+
+            const container = document.getElementById('simResultsContainer');
+            container.innerHTML = `<p class="text-xs font-semibold text-slate-500 uppercase">Top 4 Phones Structurally Closest to Reference:</p>`;
+            topSim.forEach(d => {
+                container.innerHTML += `
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm">${d.name}</div>
+                            <div class="text-xs text-slate-500">$${d.clean_price.toFixed(0)} • ${d.ram}GB RAM • ${d.camera}MP • ${d.battery}mAh</div>
+                        </div>
+                        <span class="bg-blue-100 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-full">
+                            ${(d.simScore * 100).toFixed(1)}% Match
+                        </span>
+                    </div>
+                `;
+            });
+        }
+
+        // Initialization & Event Wiring
+        window.addEventListener('DOMContentLoaded', () => {
+            setupSimilarityFinder();
+            [...new Set(RAW_DATA.map(d => d.brand))].sort().forEach(b => {
+                document.getElementById('brandSelect').innerHTML += `<option value="${b}">${b}</option>`;
+            });
+
+            // Mobile filter toggle
+            const drawer = document.getElementById('filterDrawer');
+            document.getElementById('mobileFilterToggle').addEventListener('click', () => {
+                drawer.classList.toggle('hidden');
+                if (!drawer.classList.contains('hidden')) {
+                    drawer.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+
+            // Sliders & Controls
+            const priceSlider = document.getElementById('priceSlider');
+            priceSlider.addEventListener('input', (e) => {
+                state.maxPrice = parseFloat(e.target.value);
+                document.getElementById('priceLabel').innerText = `$${state.maxPrice}`;
+                runRecommendationPipeline();
+            });
+
+            document.getElementById('ramSelect').addEventListener('change', (e) => {
+                state.minRam = parseFloat(e.target.value);
+                runRecommendationPipeline();
+            });
+
+            document.getElementById('brandSelect').addEventListener('change', (e) => {
+                state.brand = e.target.value;
+                runRecommendationPipeline();
+            });
+
+            document.querySelectorAll('.display-check').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    const checked = Array.from(document.querySelectorAll('.display-check:checked')).map(c => c.value);
+                    state.displayTypes = checked;
+                    runRecommendationPipeline();
+                });
+            });
+
+            document.getElementById('topKSelect').addEventListener('change', (e) => {
+                state.topK = parseInt(e.target.value);
+                runRecommendationPipeline();
+            });
+
+            // Persona buttons
+            document.querySelectorAll('.persona-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    applyPersona(btn.getAttribute('data-persona'));
+                });
+            });
+
+            // Weight Sliders
+            ['wPrice', 'wRam', 'wCamera', 'wBattery', 'wStorage', 'wProcessor'].forEach(id => {
+                const el = document.getElementById(id);
+                el.addEventListener('input', (e) => {
+                    document.getElementById(id + 'Val').innerText = `${e.target.value}%`;
+                    state.weights[id.slice(1).toLowerCase()] = parseFloat(e.target.value) / 100;
+                    state.persona = 'Custom'; setActiveChip('Custom');
+                    runRecommendationPipeline();
+                });
+            });
+
+            // Toggle weight sliders visibility
+            document.getElementById('toggleWeightsBtn').addEventListener('click', () => {
+                const wc = document.getElementById('weightsContainer');
+                const arrow = document.getElementById('weightsArrow');
+                wc.classList.toggle('hidden');
+                arrow.innerText = wc.classList.contains('hidden') ? '▼' : '▲';
+            });
+
+            // Query Search Bar
+            document.getElementById('searchBtn').addEventListener('click', () => {
+                const val = document.getElementById('nlQueryInput').value.trim();
+                if (val) parseAndApplyQuery(val);
+            });
+
+            document.getElementById('nlQueryInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const val = e.target.value.trim();
+                    if (val) parseAndApplyQuery(val);
+                }
+            });
+
+            document.querySelectorAll('.query-prompt').forEach(qp => {
+                qp.addEventListener('click', () => {
+                    const text = qp.innerText;
+                    document.getElementById('nlQueryInput').value = text;
+                    parseAndApplyQuery(text);
+                });
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                document.getElementById('nlQueryInput').value = '';
+                document.getElementById('brandSelect').value = '';
+                document.querySelectorAll('.display-check').forEach(c => c.checked = false);
+                state.displayTypes = [];
+                state.brand = '';
+                applyPersona('Student');
+            });
+
+            document.getElementById('applyFiltersBtn').addEventListener('click', () => {
+                runRecommendationPipeline();
+            });
+
+            // Modals
+            document.getElementById('openCompareBtn').addEventListener('click', showCompareModal);
+            document.getElementById('closeCompareBtn').addEventListener('click', () => {
+                document.getElementById('compareModal').classList.add('hidden');
+            });
+            document.getElementById('closeCompareBtn2').addEventListener('click', () => {
+                document.getElementById('compareModal').classList.add('hidden');
+            });
+            document.getElementById('clearCompareBtn').addEventListener('click', () => {
+                comparedDeviceIds.clear();
+                updateCompareBadge();
+                document.getElementById('compareModal').classList.add('hidden');
+                renderCards(currentRecommendations);
+            });
+
+            document.getElementById('viewToggleSim').addEventListener('click', () => {
+                document.getElementById('similarityModal').classList.remove('hidden');
+                runSimilaritySearch();
+            });
+            document.getElementById('closeSimBtn').addEventListener('click', () => {
+                document.getElementById('similarityModal').classList.add('hidden');
+            });
+
+            // Initial calculation
+            applyPersona('Student');
+        });
+    </script>
+</body>
+</html>
